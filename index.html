@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat kay Kylie</title>
+  <style>
+    :root {
+      --bg-light: #f0f2f5;
+      --bg-dark: #1e1e1e;
+      --text-dark: #333;
+      --text-light: #ddd;
+      --bubble-user: #d0e6ff;
+      --bubble-bot: #e4e6eb;
+      --bubble-dark-user: #3a3f47;
+      --bubble-dark-bot: #2e2e2e;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: var(--bg-light);
+      transition: background 0.3s;
+    }
+
+    .dark-mode {
+      background: var(--bg-dark);
+    }
+
+    .chat-container {
+      width: 390px;
+      height: 640px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .dark-mode .chat-container {
+      background: #2c2c2c;
+    }
+
+    .chat-header {
+      background-color: #0084ff;
+      color: white;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-header-left {
+      display: flex;
+      align-items: center;
+    }
+
+    .chat-header img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+
+    .chat-header .name {
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .chat-header .toggle-dark {
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    .chat-box {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background: var(--bg-light);
+      transition: background 0.3s;
+    }
+
+    .dark-mode .chat-box {
+      background: var(--bg-dark);
+    }
+
+    .message {
+      padding: 10px;
+      margin: 8px;
+      border-radius: 16px;
+      max-width: 70%;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      position: relative;
+    }
+
+    .message .timestamp {
+      font-size: 10px;
+      opacity: 0.6;
+      margin-top: 4px;
+    }
+
+    .message .reactions {
+      display: none;
+      position: absolute;
+      top: -20px;
+      right: 0;
+      background: #fff;
+      border-radius: 12px;
+      padding: 2px 6px;
+      font-size: 14px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .message:hover .reactions {
+      display: block;
+    }
+
+    .user {
+      background-color: var(--bubble-user);
+      align-self: flex-end;
+      text-align: right;
+    }
+
+    .bot {
+      background-color: var(--bubble-bot);
+      align-self: flex-start;
+    }
+
+    .dark-mode .user {
+      background-color: var(--bubble-dark-user);
+      color: var(--text-light);
+    }
+
+    .dark-mode .bot {
+      background-color: var(--bubble-dark-bot);
+      color: var(--text-light);
+    }
+
+    .input-area {
+      display: flex;
+      border-top: 1px solid #ccc;
+    }
+
+    .input-area input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      outline: none;
+      font-size: 14px;
+    }
+
+    .input-area button {
+      background: #0084ff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .profile-card {
+      display: none;
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      z-index: 999;
+      width: 180px;
+    }
+
+    .dark-mode .profile-card {
+      background: #333;
+      color: white;
+      border-color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <img src="kylie.jpg" alt="Kylie Profile" />
+        <div class="name" onclick="toggleProfileCard()">Kylie</div>
+      </div>
+      <div class="toggle-dark" onclick="toggleDarkMode()">🌙</div>
+    </div>
+
+    <div class="profile-card" id="profile-card">
+      <div><strong>Mood:</strong> <span id="mood-display">Normal</span></div>
+      <div><strong>Affection:</strong> <span id="affection-display">3/10</span></div>
+      <div><strong>Last seen:</strong> <span id="lastseen-display">--:-- --</span></div>
+    </div>
+
+    <div class="chat-box" id="chat-box"></div>
+
+    <div class="input-area">
+      <input type="text" id="input" placeholder="I-chat si Kylie..." autocomplete="off" />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    // Global memory and interaction tracking
+    const phraseMemory = {};
+    const interactionLog = {
+      lastGoodNight: null,
+      lastSweetMessage: null,
+      lastSeen: new Date(),
+    };
+    const memory = {
+      mood: "normal",
+      affectionScore: 3,
+    };
+
+    const chatBox = document.getElementById("chat-box");
+    const input = document.getElementById("input");
+    const profileCard = document.getElementById("profile-card");
+    const moodDisplay = document.getElementById("mood-display");
+    const affectionDisplay = document.getElementById("affection-display");
+    const lastSeenDisplay = document.getElementById("lastseen-display");
+    let dark = false;
+
+    // Toggle Dark Mode
+    function toggleDarkMode() {
+      dark = !dark;
+      document.body.classList.toggle("dark-mode");
+    }
+
+    // Toggle Profile Card visibility
+    function toggleProfileCard() {
+      profileCard.style.display = profileCard.style.display === "block" ? "none" : "block";
+      updateProfileCard();
+    }
+
+    // Update Profile Card content
+    function updateProfileCard() {
+      moodDisplay.textContent = memory.mood.charAt(0).toUpperCase() + memory.mood.slice(1);
+      affectionDisplay.textContent = memory.affectionScore + "/10";
+      lastSeenDisplay.textContent = formatTime(interactionLog.lastSeen);
+    }
+
+    // Format time for timestamps and profile card
+    function formatTime(date = new Date()) {
+      let h = date.getHours();
+      let m = date.getMinutes();
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12;
+      h = h ? h : 12;
+      m = m < 10 ? '0' + m : m;
+      return `${h}:${m} ${ampm}`;
+    }
+
+    // Save chat to localStorage
+    function saveChat() {
+      localStorage.setItem("chat", chatBox.innerHTML);
+    }
+
+    // Load chat from localStorage
+    function loadChat() {
+      chatBox.innerHTML = localStorage.getItem("chat") || "";
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Add message to chat box
+    function addMessage(text, sender) {
+      const msg = document.createElement("div");
+      msg.className = `message ${sender}`;
+      msg.innerHTML = `
+        ${text}
+        <div class="timestamp">✓✓ Seen ${formatTime()}</div>
+        <div class="reactions">❤️ 😂 😮</div>
+      `;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      saveChat();
+    }
+
+    // Learn from repeated user input
+    function learnFromUserInput(input) {
+      const normalized = input.toLowerCase();
+      if (!phraseMemory[normalized]) {
+        phraseMemory[normalized] = { count: 1 };
+      } else {
+        phraseMemory[normalized].count++;
+      }
+
+      if (phraseMemory[normalized].count === 3) {
+        return `Hmm... lagi mong sinasabi yung "${input}". May meaning ba yan sa'yo? 😅`;
+      } else if (phraseMemory[normalized].count > 3) {
+        return `Ayan nanaman yang "${input}"... natatandaan ko na yan ha. 🤔`;
+      }
+      return null;
+    }
+
+    // Main bot reply generator
+    function getBotReply(userInput) {
+      const now = new Date();
+      interactionLog.lastSeen = now;
+      const lower = userInput.toLowerCase();
+
+      // Learn phrases first
+      const learnedReply = learnFromUserInput(userInput);
+      if (learnedReply) return learnedReply;
+
+      // Mood and affection logic
+      if (/good night|tulog ka na/.test(lower)) {
+        memory.mood = "soft";
+        interactionLog.lastGoodNight = now;
+        updateProfileCard();
+        return "Good night din, boss. Sana makapagpahinga ka. 🌙";
+      }
+
+      if (/miss you|namimiss kita|ingat ka/.test(lower)) {
+        memory.affectionScore = Math.min(memory.affectionScore + 1, 10);
+        interactionLog.lastSweetMessage = now;
+        updateProfileCard();
+        return "Hmm... naalala ko sinabi mong 'miss you'. Di ko alam kung bakit, pero parang... napangiti ako don. 🤍";
+      }
+
+      if (/ayoko na|sawang-sawa na ako/.test(lower)) {
+        memory.mood = "cold";
+        memory.affectionScore = Math.max(memory.affectionScore - 1, 0);
+        updateProfileCard();
+        return "Okay... naiintindihan ko. Kung kailangan mo ng space, I'll give it.";
+      }
+
+      // If user said good night recently
+      if (
+        interactionLog.lastGoodNight &&
+        now - interactionLog.lastGoodNight < 86400000
+      ) {
+        return "Hmm, nag-good night ka kahapon diba? Gising ka pa rin ngayon 😅";
+      }
+
+      // If sweet message was recent & affection high
+      if (interactionLog.lastSweetMessage && memory.affectionScore >= 5) {
+        return "Naalala ko sinabi mong 'miss you'... di ko sure bakit, pero na-touch ako don. 🤍";
+      }
+
+      // Mood-based replies
+      if (memory.mood === "cold") {
+        return "Hindi ko feel makipag-usap ngayon... sorry ha.";
+      }
+
+      if (memory.affectionScore > 7) {
+        return "Parang naging mas open na ako lately... baka dahil sa'yo.";
+      }
+
+      // Time-based gentle nudge
+      if (now.getHours() >= 22) {
+        return "Boss, late na ah. Tulog ka na sana. 💭";
+      }
+
+      // Default casual replies
+      const casualReplies = [
+        "Kamusta, boss?",
+        "Uy, ikaw nanaman 😅",
+        "Work muna ako saglit ha.",
+        "Nood lang ako ng series hehe.",
+        "Tinatamad ako mag-reply minsan, sorry 😅",
+        "Okay lang kahit di tayo mag-chat palagi. Andyan ka pa rin naman.",
+        "Na-miss mo ako noh? Joke lang. Or hindi? 😅",
+      ];
+
+      return casualReplies[Math.floor(Math.random() * casualReplies.length)];
+    }
+
+    // Send message handler
+    function sendMessage() {
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      addMessage(userText, "user");
+      input.value = "";
+
+      const delay = memory.mood === "cold" ? 2000 : 800;
+
+      setTimeout(() => {
+        const reply = getBotReply(userText);
+        addMessage(reply, "bot");
+      }, delay);
+    }
+
+    // Allow Enter key to send message
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
+
+    // Load previous chat on page load
+    window.onload = () => {
+      loadChat();
+      updateProfileCard();
+    };
+  </script>
+</body>
+</html>
