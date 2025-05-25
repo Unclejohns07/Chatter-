@@ -236,7 +236,28 @@
       dark = !dark;
       document.body.classList.toggle("dark-mode");
     }
+    function sendMessage() {
+  input.blur(); // Avoids duplicate triggering from Enter + button focus
 
+  const userText = input.value.trim();
+  if (!userText) return;
+
+  addMessage(userText, "user");
+  input.value = "";
+
+  const delay = memory.mood === "cold" ? 2000 : 800;
+
+  setTimeout(() => {
+    const reply = getBotReply(userText);
+    addMessage(reply, "bot");
+  }, delay);
+}
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault(); // Prevent Enter from triggering form submit or other events
+    sendMessage();
+  }
+});
     // Toggle Profile Card visibility
     function toggleProfileCard() {
       profileCard.style.display = profileCard.style.display === "block" ? "none" : "block";
@@ -391,7 +412,7 @@
         addMessage(reply, "bot");
       }, delay);
     }
-
+ 
     // Allow Enter key to send message
     input.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
